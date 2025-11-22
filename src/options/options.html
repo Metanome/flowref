@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowRef - Batch Mode</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FlowRef - Batch Mode</h1>
+      <p class="subtitle">Generate multiple citations at once</p>
+    </header>
+
+    <section class="section">
+      <h2>Batch DOI Input</h2>
+      <p class="help-text">Enter multiple DOIs, one per line, or upload PDF files:</p>
+      
+      <!-- Tab Navigation -->
+      <div class="tab-nav">
+        <button id="tab-text" class="tab-btn active">Text Input</button>
+        <button id="tab-pdf" class="tab-btn">PDF Upload</button>
+      </div>
+
+      <!-- Text Input Tab -->
+      <div id="text-input-tab" class="tab-content active">
+        <textarea 
+          id="doi-list" 
+          placeholder="10.xxxx/xxxxx&#10;10.yyyy/yyyyy&#10;10.zzzz/zzzzz"
+          rows="8"
+        ></textarea>
+      </div>
+
+      <!-- PDF Upload Tab -->
+      <div id="pdf-upload-tab" class="tab-content hidden">
+        <div class="upload-area" id="upload-area">
+          <div class="upload-icon">PDF</div>
+          <p class="upload-text">Drag and drop PDF files here</p>
+          <p class="upload-subtext">or</p>
+          <label for="pdf-input" class="btn-secondary upload-btn">Browse Files</label>
+          <input type="file" id="pdf-input" accept=".pdf,application/pdf" multiple style="display: none;">
+        </div>
+        
+        <div id="pdf-list" class="pdf-list"></div>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="batch-style">Citation Style</label>
+          <select id="batch-style">
+            <option value="apa">APA 7th Edition</option>
+            <option value="mla">MLA 9th Edition</option>
+            <option value="chicago">Chicago 17th Edition</option>
+            <option value="vancouver">Vancouver</option>
+            <option value="ieee">IEEE</option>
+          </select>
+        </div>
+        
+        <button id="process-btn" class="btn-primary">Process All</button>
+      </div>
+    </section>
+
+    <div id="loading" class="loading hidden">
+      <div>
+        <div class="spinner"></div>
+        <span>Processing citations...</span>
+      </div>
+      <button id="cancel-btn" class="btn-cancel">Cancel</button>
+    </div>
+
+    <section id="results-section" class="section hidden">
+      <h2>Results</h2>
+      
+      <div class="results-actions">
+        <button id="copy-all-btn" class="btn-secondary">Copy All Citations</button>
+        <button id="download-bib-btn" class="btn-secondary">Download as .bib</button>
+        <button id="retry-failed-btn" class="btn-warning">Retry Failed</button>
+        <button id="clear-all-btn" class="btn-danger">Clear All</button>
+        <span id="results-count"></span>
+      </div>
+
+      <div id="results-container"></div>
+    </section>
+
+    <footer>
+      <a href="#" id="settings-link">Settings</a>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

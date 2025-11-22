@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowRef Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FlowRef Settings</h1>
+      <p class="subtitle">Customize your citation generation experience</p>
+    </header>
+
+    <main>
+      <!-- Citation Preferences -->
+      <section class="settings-section">
+        <h2>Citation Preferences</h2>
+        
+        <div class="setting-item">
+          <label for="default-style">Default Citation Style</label>
+          <select id="default-style" class="setting-input">
+            <option value="apa">APA (7th Edition)</option>
+            <option value="mla">MLA (9th Edition)</option>
+            <option value="chicago">Chicago (17th Edition)</option>
+            <option value="vancouver">Vancouver</option>
+            <option value="ieee">IEEE</option>
+          </select>
+          <p class="setting-description">The citation style used by default in both popup and batch mode</p>
+        </div>
+
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="auto-detect-doi" class="setting-checkbox">
+            <span>Auto-detect DOI from webpage</span>
+          </label>
+          <p class="setting-description">Automatically detect and populate DOI when visiting academic pages</p>
+        </div>
+      </section>
+
+      <!-- Performance & Caching -->
+      <section class="settings-section">
+        <h2>Performance & Caching</h2>
+        
+        <div class="setting-item">
+          <label for="cache-duration">Cache Duration (hours)</label>
+          <input type="number" id="cache-duration" class="setting-input" min="1" max="168" value="24">
+          <p class="setting-description">How long to cache metadata before refetching (1-168 hours)</p>
+        </div>
+
+        <div class="setting-item">
+          <label>
+            <input type="checkbox" id="enable-caching" class="setting-checkbox" checked>
+            <span>Enable metadata caching</span>
+          </label>
+          <p class="setting-description">Cache fetched metadata to reduce API calls and improve speed</p>
+        </div>
+
+        <div class="setting-item">
+          <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+          <p class="setting-description">Remove all cached metadata (useful for troubleshooting)</p>
+        </div>
+      </section>
+
+      <!-- API & Retry Settings -->
+      <section class="settings-section">
+        <h2>API & Retry Settings</h2>
+        
+        <div class="setting-item">
+          <label for="max-retries">Maximum Retry Attempts</label>
+          <input type="number" id="max-retries" class="setting-input" min="0" max="10" value="3">
+          <p class="setting-description">Number of times to retry failed API requests (0-10)</p>
+        </div>
+
+        <div class="setting-item">
+          <label for="initial-delay">Initial Retry Delay (seconds)</label>
+          <input type="number" id="initial-delay" class="setting-input" min="1" max="10" step="0.5" value="1">
+          <p class="setting-description">Starting delay before first retry (uses exponential backoff)</p>
+        </div>
+
+        <div class="setting-item">
+          <label for="rate-limit-delay">Rate Limit Delay (seconds)</label>
+          <input type="number" id="rate-limit-delay" class="setting-input" min="1" max="30" value="4">
+          <p class="setting-description">Initial delay when rate limited (429 error)</p>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="save-btn" class="btn-primary">Save Settings</button>
+        <button id="reset-btn" class="btn-secondary">Reset to Defaults</button>
+      </div>
+
+      <!-- Notification -->
+      <div id="notification" class="notification"></div>
+    </main>
+  </div>
+
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowRef</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>FlowRef</h1>
+      <p class="subtitle">Fast DOI-based citation generator</p>
+    </header>
+
+    <!-- DOI Detection Section -->
+    <section class="section">
+      <label for="doi-input">DOI</label>
+      <div class="doi-controls">
+        <select id="doi-select" class="hidden">
+          <option value="">Select a DOI...</option>
+        </select>
+        <input 
+          type="text" 
+          id="doi-input" 
+          placeholder="10.xxxx/xxxxx or paste DOI" 
+          autocomplete="off"
+        >
+        <button id="detect-btn" class="btn-secondary">Detect</button>
+      </div>
+      <div id="validation-feedback" class="validation-feedback"></div>
+      <div id="detection-status" class="status-message"></div>
+    </section>
+
+    <!-- Citation Style Section -->
+    <section class="section">
+      <label for="style-select">Citation Style</label>
+      <select id="style-select">
+        <option value="apa">APA 7th Edition</option>
+        <option value="mla">MLA 9th Edition</option>
+        <option value="chicago">Chicago 17th Edition</option>
+        <option value="vancouver">Vancouver</option>
+        <option value="ieee">IEEE</option>
+      </select>
+    </section>
+
+    <!-- Generate Button -->
+    <section class="section">
+      <button id="generate-btn" class="btn-primary">Generate Citation</button>
+    </section>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <span>Fetching metadata...</span>
+    </div>
+
+    <!-- Error Message -->
+    <div id="error" class="error-message hidden"></div>
+
+    <!-- Output Section -->
+    <section id="output-section" class="section hidden">
+      <h3>Citation</h3>
+      
+      <!-- Full Reference -->
+      <div class="output-group">
+        <label>Full Reference</label>
+        <div class="output-box" id="reference-output"></div>
+        <button class="btn-copy" data-target="reference">Copy</button>
+      </div>
+
+      <!-- In-text (Parenthetical) -->
+      <div class="output-group">
+        <label>In-text (Parenthetical)</label>
+        <div class="output-box output-box-small" id="intext-parens-output"></div>
+        <button class="btn-copy" data-target="intext-parens">Copy</button>
+      </div>
+
+      <!-- In-text (Narrative) -->
+      <div class="output-group">
+        <label>In-text (Narrative)</label>
+        <div class="output-box output-box-small" id="intext-narrative-output"></div>
+        <button class="btn-copy" data-target="intext-narrative">Copy</button>
+      </div>
+
+      <!-- BibTeX -->
+      <div class="output-group">
+        <label>BibTeX</label>
+        <div class="output-box output-box-code" id="bibtex-output"></div>
+        <button class="btn-copy" data-target="bibtex">Copy</button>
+      </div>
+    </section>
+
+    <!-- Footer Links -->
+    <footer>
+      <a href="#" id="batch-mode-link">Open Batch Mode</a>
+      <span class="separator">•</span>
+      <a href="#" id="settings-link">Settings</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

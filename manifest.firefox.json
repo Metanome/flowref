@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "FlowRef",
+  "version": "0.2.0",
+  "description": "Fast DOI-based citation generator - Open-source, privacy-friendly citation tool for students and researchers",
+  "icons": {
+    "16": "icons/Icon16.ico",
+    "48": "icons/Icon48.ico",
+    "128": "icons/Icon128.ico"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/Icon16.ico",
+      "48": "icons/Icon48.ico"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "clipboardWrite",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://api.crossref.org/*",
+    "https://api.datacite.org/*",
+    "https://doi.org/*"
+  ],
+  "background": {
+    "scripts": ["background/background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "match_about_blank": true,
+      "all_frames": true,
+      "js": ["content/contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pdfjs/pdf.worker.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "flowref@metanome.proton.me",
+      "strict_min_version": "109.0"
+    }
+  }
+}
