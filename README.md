@@ -175,7 +175,3 @@ Contributions welcome. Please:
 - Test in both Firefox and Chrome
 - Update documentation as needed
 - Submit pull requests to main branch
-
-## Support
-
-Report issues or request features on GitHub: https://github.com/Metanome/flowref
