@@ -28,6 +28,9 @@
   "author": "Dr. Skinner <metanome@proton.me>",
   "license": "GPL-3.0",
   "dependencies": {
+    "@citation-js/core": "^0.7.21",
+    "@citation-js/plugin-csl": "^0.7.21",
+    "@citation-js/plugin-doi": "^0.7.21",
     "pdfjs-dist": "^3.11.174"
   },
   "devDependencies": {

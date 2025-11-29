@@ -200,3 +200,97 @@ export function isValidDOI(doi: string): boolean {
   const normalized = normalizeDOI(doi);
   return normalized !== null;
 }
+
+/**
+ * Check if input is a URL
+ */
+export function isURL(input: string): boolean {
+  if (!input) return false;
+  const trimmed = input.trim().toLowerCase();
+  return trimmed.startsWith('http://') || 
+         trimmed.startsWith('https://') || 
+         trimmed.startsWith('www.');
+}
+
+/**
+ * Fetch DOI from a URL by fetching the page and extracting DOI
+ * Uses multiple detection methods in priority order:
+ * 1. Meta tags
+ * 2. URL path
+ * 3. Page content
+ * 4. JSON-LD structured data
+ */
+export async function fetchDOIFromURL(url: string): Promise<string | null> {
+  if (!url || !isURL(url)) {
+    return null;
+  }
+  
+  try {
+    // Ensure URL has protocol
+    let fullUrl = url.trim();
+    if (fullUrl.toLowerCase().startsWith('www.')) {
+      fullUrl = 'https://' + fullUrl;
+    }
+    
+    // Fetch the page
+    const response = await fetch(fullUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    });
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
+      return null;
+    }
+    
+    const html = await response.text();
+    
+    // Parse HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Priority 1: Meta tags
+    const metaDOIs = detectDOIsFromMetaTags(doc);
+    if (metaDOIs.length > 0) {
+      return metaDOIs[0];
+    }
+    
+    // Priority 2: URL path (check if URL itself contains DOI)
+    const urlDOI = normalizeDOI(fullUrl);
+    if (urlDOI) {
+      return urlDOI;
+    }
+    
+    // Priority 3: JSON-LD structured data
+    const jsonLdScripts = Array.from(doc.querySelectorAll('script[type="application/ld+json"]'));
+    for (const script of jsonLdScripts) {
+      try {
+        const data = JSON.parse(script.textContent || '');
+        const identifier = data.identifier || data['@id'] || data.doi;
+        if (identifier) {
+          const normalized = normalizeDOI(identifier);
+          if (normalized) {
+            return normalized;
+          }
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    }
+    
+    // Priority 4: Page text content
+    const bodyText = doc.body?.textContent || '';
+    const textDOIs = detectDOIsFromText(bodyText);
+    if (textDOIs.length > 0) {
+      return textDOIs[0];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching DOI from URL:', error);
+    return null;
+  }
+}

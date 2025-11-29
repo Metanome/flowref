@@ -2,21 +2,22 @@
  * Options page (Batch mode) for FlowRef
  */
 
-import { normalizeDOI, isValidDOI } from "../core/doi";
+import { normalizeDOI, isValidDOI, isURL, fetchDOIFromURL } from "../core/doi";
 import { fetchMetadata } from "../core/metadata";
-import { formatReferenceAPA } from "../core/formatters/apa";
-import { formatReferenceMLA } from "../core/formatters/mla";
-import { formatReferenceChicago } from "../core/formatters/chicago";
-import { formatReferenceVancouver } from "../core/formatters/vancouver";
-import { formatReferenceIEEE } from "../core/formatters/ieee";
+import { formatReference } from "../core/formatters/csl";
 import { formatBibTeX } from "../core/formatters/bibtex";
 import { copyToClipboard, showNotification } from "../core/clipboard";
 import { BatchEntry, CitationStyle } from "../core/types";
 import { processPDFFile } from "../core/pdf";
+import { StylePicker } from "../core/stylePicker";
+import { initializePopularStyles } from "../core/styles";
+
+// Initialize popular styles with real CSL metadata (async, non-blocking)
+initializePopularStyles();
 
 // DOM elements
 const doiListInput = document.getElementById("doi-list") as HTMLTextAreaElement;
-const batchStyleSelect = document.getElementById("batch-style") as HTMLSelectElement;
+let batchStylePicker: StylePicker;
 const processBtn = document.getElementById("process-btn") as HTMLButtonElement;
 const loading = document.getElementById("loading") as HTMLDivElement;
 const resultsSection = document.getElementById("results-section") as HTMLElement;
@@ -82,17 +83,20 @@ function checkDuplicates(dois: string[]): {
   const duplicates: Array<{ doi: string; lines: number[] }> = [];
   
   normalized.forEach((doi, idx) => {
-    if (seen.has(doi)) {
-      seen.get(doi)!.push(idx + 1);
+    const key = doi.toLowerCase();
+    if (seen.has(key)) {
+      seen.get(key)!.push(idx + 1);
     } else {
-      seen.set(doi, [idx + 1]);
+      seen.set(key, [idx + 1]);
     }
   });
   
   // Find duplicates
-  seen.forEach((lines, doi) => {
+  seen.forEach((lines, key) => {
     if (lines.length > 1) {
-      duplicates.push({ doi, lines });
+      // Use the first occurrence's original DOI for display
+      const originalDoi = normalized[lines[0] - 1];
+      duplicates.push({ doi: originalDoi, lines });
     }
   });
   
@@ -101,9 +105,10 @@ function checkDuplicates(dois: string[]): {
   const seenSet = new Set<string>();
   
   normalized.forEach((doi, idx) => {
-    if (!seenSet.has(doi)) {
+    const key = doi.toLowerCase();
+    if (!seenSet.has(key)) {
       unique.push(dois[idx]);
-      seenSet.add(doi);
+      seenSet.add(key);
     }
   });
   
@@ -115,50 +120,58 @@ function checkDuplicates(dois: string[]): {
  */
 function createResultCard(entry: BatchEntry, index: number): HTMLElement {
   const card = document.createElement("div");
-  card.className = "result-card";
+  card.className = "result-item";
   
   if (entry.status === "success") {
-    card.classList.add("result-success");
+    card.classList.add("success");
   } else if (entry.status === "error") {
-    card.classList.add("result-error");
+    card.classList.add("error");
   }
   
-  const header = document.createElement("div");
-  header.className = "result-header";
-  
-  const number = document.createElement("span");
-  number.className = "result-number";
-  number.textContent = `#${index + 1}`;
-  
-  const doi = document.createElement("span");
-  doi.className = "result-doi";
-  doi.textContent = entry.input;
-  
-  const status = document.createElement("span");
-  status.className = "result-status";
-  if (entry.status === "success") {
-    status.textContent = "Success";
-  } else if (entry.status === "error") {
-    status.textContent = "Error";
-  } else {
-    status.textContent = "Processing...";
-  }
-  
-  header.appendChild(number);
-  header.appendChild(doi);
-  header.appendChild(status);
-  
-  card.appendChild(header);
+  // Content container
+  const content = document.createElement("div");
   
   if (entry.status === "success" && entry.citation) {
     const citation = document.createElement("div");
-    citation.className = "result-citation";
-    citation.innerHTML = entry.citation; // Use innerHTML to render HTML formatting
-    card.appendChild(citation);
-    
+    citation.className = "citation-text";
+    citation.innerHTML = entry.citation;
+    content.appendChild(citation);
+  } else if (entry.status === "error" && entry.error) {
+    const error = document.createElement("div");
+    error.className = "citation-text";
+    error.style.color = "var(--error-color)";
+    error.textContent = entry.error;
+    content.appendChild(error);
+  } else {
+    const processing = document.createElement("div");
+    processing.className = "citation-text";
+    processing.style.color = "var(--text-secondary)";
+    processing.style.fontStyle = "italic";
+    processing.textContent = "Processing...";
+    content.appendChild(processing);
+  }
+  
+  // Meta info
+  const meta = document.createElement("div");
+  meta.className = "citation-meta";
+  
+  const number = document.createElement("span");
+  number.textContent = `#${index + 1}`;
+  meta.appendChild(number);
+  
+  const doi = document.createElement("span");
+  doi.textContent = entry.input;
+  meta.appendChild(doi);
+  
+  content.appendChild(meta);
+  card.appendChild(content);
+  
+  // Copy button (only for success)
+  if (entry.status === "success" && entry.citation) {
     const copyBtn = document.createElement("button");
-    copyBtn.className = "btn-copy-small";
-    copyBtn.textContent = "Copy";
+    copyBtn.className = "copy-btn";
+    copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+    copyBtn.title = "Copy citation";
     copyBtn.onclick = async () => {
       if (entry.citation) {
         await copyToClipboard(entry.citation);
@@ -166,11 +179,6 @@ function createResultCard(entry: BatchEntry, index: number): HTMLElement {
       }
     };
     card.appendChild(copyBtn);
-  } else if (entry.status === "error" && entry.error) {
-    const error = document.createElement("div");
-    error.className = "result-error-message";
-    error.textContent = entry.error;
-    card.appendChild(error);
   }
   
   return card;
@@ -275,7 +283,7 @@ async function processBatchText(): Promise<void> {
   updateResultsDisplay();
   showLoading();
   
-  // Process each DOI
+  // Process each DOI/URL
   for (let i = 0; i < batchEntries.length; i++) {
     // Check if cancelled
     if (abortController?.signal.aborted) {
@@ -286,16 +294,36 @@ async function processBatchText(): Promise<void> {
     entry.status = "processing";
     updateResultsDisplay();
     
-    const normalized = normalizeDOI(entry.input);
+    let normalizedDOI: string | null = null;
     
-    if (!normalized || !isValidDOI(normalized)) {
+    // Check if input is a URL
+    if (isURL(entry.input)) {
+      try {
+        normalizedDOI = await fetchDOIFromURL(entry.input);
+        if (!normalizedDOI) {
+          entry.status = "error";
+          entry.error = "Could not extract DOI from URL";
+          updateResultsDisplay();
+          continue;
+        }
+      } catch (error) {
+        entry.status = "error";
+        entry.error = "Failed to fetch URL";
+        updateResultsDisplay();
+        continue;
+      }
+    } else {
+      normalizedDOI = normalizeDOI(entry.input);
+    }
+    
+    if (!normalizedDOI || !isValidDOI(normalizedDOI)) {
       entry.status = "error";
       entry.error = "Invalid DOI format";
       updateResultsDisplay();
       continue;
     }
     
-    await processEntryWithDOI(entry, normalized, i);
+    await processEntryWithDOI(entry, normalizedDOI, i);
     updateResultsDisplay();
     
     // Small delay to avoid rate limiting
@@ -347,12 +375,13 @@ async function processBatchPDF(): Promise<void> {
       if (result.doi) {
         const normalized = normalizeDOI(result.doi);
         if (normalized && isValidDOI(normalized)) {
+          const normalizedLower = normalized.toLowerCase();
           // Check for duplicate DOI
-          if (seenDOIs.has(normalized)) {
+          if (seenDOIs.has(normalizedLower)) {
             entry.status = "error";
             entry.error = `Duplicate DOI: ${normalized} (already processed)`;
           } else {
-            seenDOIs.add(normalized);
+            seenDOIs.add(normalizedLower);
             await processEntryWithDOI(entry, normalized, i);
           }
         } else {
@@ -389,27 +418,9 @@ async function processEntryWithDOI(entry: BatchEntry, doi: string, index: number
       entry.status = "success";
       entry.metadata = result.data;
       
-      // Format citation based on selected style
-      const style = batchStyleSelect.value as CitationStyle;
-      
-      switch (style) {
-        case "mla":
-          entry.citation = formatReferenceMLA(result.data);
-          break;
-        case "chicago":
-          entry.citation = formatReferenceChicago(result.data);
-          break;
-        case "vancouver":
-          entry.citation = formatReferenceVancouver(result.data, index + 1);
-          break;
-        case "ieee":
-          entry.citation = formatReferenceIEEE(result.data, index + 1);
-          break;
-        case "apa":
-        default:
-          entry.citation = formatReferenceAPA(result.data);
-          break;
-      }
+      // Format citation using CSL
+      const style = batchStylePicker.getSelectedStyle() as CitationStyle;
+      entry.citation = formatReference(result.data, style, index + 1);
     } else {
       entry.status = "error";
       entry.error = result.error || "Failed to fetch metadata";
@@ -437,7 +448,7 @@ function extractFirstAuthor(metadata: any): string {
  * Copy all successful citations
  */
 async function copyAllCitations(): Promise<void> {
-  const style = batchStyleSelect.value as CitationStyle;
+  const style = batchStylePicker.getSelectedStyle() as CitationStyle;
   let entries = batchEntries.filter(e => e.status === "success" && e.citation);
   
   if (entries.length === 0) {
@@ -538,6 +549,17 @@ async function retryFailed(): Promise<void> {
   
   showLoading();
   
+  // Track seen DOIs from successful entries to prevent duplicates
+  const seenDOIs = new Set<string>();
+  batchEntries.forEach(entry => {
+    if (entry.status === "success" && entry.metadata && entry.metadata.doi) {
+      const normalized = normalizeDOI(entry.metadata.doi);
+      if (normalized) {
+        seenDOIs.add(normalized.toLowerCase());
+      }
+    }
+  });
+  
   try {
     // Reset failed entries to pending
     failedEntries.forEach(entry => {
@@ -567,7 +589,15 @@ async function retryFailed(): Promise<void> {
       if (activeTab === "text") {
         const normalized = normalizeDOI(entry.input);
         if (normalized && isValidDOI(normalized)) {
-          await processEntryWithDOI(entry, normalized, i);
+          const normalizedLower = normalized.toLowerCase();
+          // Check for duplicate DOI
+          if (seenDOIs.has(normalizedLower)) {
+            entry.status = "error";
+            entry.error = `Duplicate DOI: ${normalized} (already processed)`;
+          } else {
+            seenDOIs.add(normalizedLower);
+            await processEntryWithDOI(entry, normalized, i);
+          }
         } else {
           entry.status = "error";
           entry.error = "Invalid DOI format";
@@ -585,7 +615,15 @@ async function retryFailed(): Promise<void> {
             if (result.doi) {
               const normalized = normalizeDOI(result.doi);
               if (normalized && isValidDOI(normalized)) {
-                await processEntryWithDOI(entry, normalized, i);
+                const normalizedLower = normalized.toLowerCase();
+                // Check for duplicate DOI
+                if (seenDOIs.has(normalizedLower)) {
+                  entry.status = "error";
+                  entry.error = `Duplicate DOI: ${normalized} (already processed)`;
+                } else {
+                  seenDOIs.add(normalizedLower);
+                  await processEntryWithDOI(entry, normalized, i);
+                }
               } else {
                 entry.status = "error";
                 entry.error = "Invalid DOI format extracted from PDF";
@@ -790,15 +828,17 @@ settingsLink.addEventListener("click", (e) => {
   browserAPI.tabs.create({ url: browserAPI.runtime.getURL("settings/settings.html") });
 });
 
-// Load saved style preference
+// Initialize StylePicker
 const browserAPI = (typeof browser !== "undefined") ? browser : chrome;
+batchStylePicker = new StylePicker("batch-style", "apa");
 
+// Load saved style preference
 browserAPI.storage.local.get("citationStyle").then((result: any) => {
   if (result.citationStyle) {
-    batchStyleSelect.value = result.citationStyle;
+    batchStylePicker.setSelectedStyle(result.citationStyle);
   }
 });
 
-batchStyleSelect.addEventListener("change", () => {
-  browserAPI.storage.local.set({ citationStyle: batchStyleSelect.value });
+batchStylePicker.onChange((styleId) => {
+  browserAPI.storage.local.set({ citationStyle: styleId });
 });

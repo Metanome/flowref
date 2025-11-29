@@ -2,20 +2,29 @@
  * Settings page for FlowRef extension
  */
 
+import { StylePicker } from "../core/stylePicker";
+import { initializePopularStyles } from "../core/styles";
+
 const storageAPI = (typeof (window as any).browser !== "undefined") ? (window as any).browser : chrome;
 
+// Initialize popular styles with real CSL metadata (async, non-blocking)
+initializePopularStyles();
+
 // DOM Elements
-const defaultStyleSelect = document.getElementById("default-style") as HTMLSelectElement;
+let defaultStylePicker: StylePicker;
 const autoDetectCheckbox = document.getElementById("auto-detect-doi") as HTMLInputElement;
 const cacheDurationInput = document.getElementById("cache-duration") as HTMLInputElement;
 const enableCachingCheckbox = document.getElementById("enable-caching") as HTMLInputElement;
 const clearCacheBtn = document.getElementById("clear-cache-btn") as HTMLButtonElement;
+const cacheStatsEl = document.getElementById("cache-stats") as HTMLParagraphElement;
 const maxRetriesInput = document.getElementById("max-retries") as HTMLInputElement;
 const initialDelayInput = document.getElementById("initial-delay") as HTMLInputElement;
 const rateLimitDelayInput = document.getElementById("rate-limit-delay") as HTMLInputElement;
 const saveBtn = document.getElementById("save-btn") as HTMLButtonElement;
 const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
 const notification = document.getElementById("notification") as HTMLDivElement;
+const advancedHeader = document.getElementById("advanced-header") as HTMLDivElement;
+const advancedBody = document.getElementById("advanced-body") as HTMLDivElement;
 
 /**
  * Default settings
@@ -29,6 +38,32 @@ const DEFAULT_SETTINGS = {
   initialRetryDelay: 1,
   rateLimitDelay: 4
 };
+
+/**
+ * Validate and show feedback for number input
+ */
+function validateInput(input: HTMLInputElement, min: number, max: number): boolean {
+  const value = parseFloat(input.value);
+  const validationIcon = document.getElementById(`${input.id}-validation`) as HTMLSpanElement;
+  
+  if (isNaN(value) || value < min || value > max) {
+    input.classList.add("invalid");
+    input.classList.remove("valid");
+    if (validationIcon) {
+      validationIcon.classList.add("invalid");
+      validationIcon.classList.remove("valid");
+    }
+    return false;
+  } else {
+    input.classList.add("valid");
+    input.classList.remove("invalid");
+    if (validationIcon) {
+      validationIcon.classList.add("valid");
+      validationIcon.classList.remove("invalid");
+    }
+    return true;
+  }
+}
 
 /**
  * Current settings
@@ -81,7 +116,11 @@ async function loadSettings(): Promise<void> {
  * Update UI with current settings
  */
 function updateUI(): void {
-  defaultStyleSelect.value = currentSettings.citationStyle;
+  if (!defaultStylePicker) {
+    defaultStylePicker = new StylePicker("default-style", currentSettings.citationStyle);
+  } else {
+    defaultStylePicker.setSelectedStyle(currentSettings.citationStyle);
+  }
   autoDetectCheckbox.checked = currentSettings.autoDetectDOI;
   cacheDurationInput.value = currentSettings.cacheDurationHours.toString();
   enableCachingCheckbox.checked = currentSettings.enableCaching;
@@ -122,7 +161,7 @@ async function saveSettings(): Promise<void> {
     }
 
     currentSettings = {
-      citationStyle: defaultStyleSelect.value,
+      citationStyle: defaultStylePicker.getSelectedStyle(),
       autoDetectDOI: autoDetectCheckbox.checked,
       cacheDurationHours: cacheDuration,
       enableCaching: enableCachingCheckbox.checked,
@@ -157,17 +196,50 @@ async function resetSettings(): Promise<void> {
 }
 
 /**
+ * Update cache statistics display
+ */
+async function updateCacheStats(): Promise<void> {
+  try {
+    const allData = await storageAPI.storage.local.get(null);
+    const cacheKeys = Object.keys(allData).filter(key => 
+      key.startsWith("doi_cache_") || 
+      key.startsWith("csl_") ||
+      key.includes("styles") ||
+      key.includes("enriched")
+    );
+    
+    if (cacheKeys.length > 0) {
+      cacheStatsEl.textContent = `${cacheKeys.length} cached entries stored`;
+      cacheStatsEl.style.color = "#5f6368";
+    } else {
+      cacheStatsEl.textContent = "No cached data";
+      cacheStatsEl.style.color = "#9aa0a6";
+    }
+  } catch (error) {
+    console.error("Error reading cache stats:", error);
+    cacheStatsEl.textContent = "Unable to read cache statistics";
+  }
+}
+
+/**
  * Clear cache
  */
 async function clearCache(): Promise<void> {
-  if (confirm("Are you sure you want to clear all cached metadata?")) {
+  if (confirm("Are you sure you want to clear all cached data (DOI metadata, CSL styles, and enriched metadata)?")) {
     try {
       const allData = await storageAPI.storage.local.get(null);
-      const cacheKeys = Object.keys(allData).filter(key => key.startsWith("doi_cache_"));
+      // Include DOI cache, CSL styles cache, and enriched metadata cache
+      const cacheKeys = Object.keys(allData).filter(key => 
+        key.startsWith("doi_cache_") || 
+        key.startsWith("csl_") ||
+        key.includes("styles") ||
+        key.includes("enriched")
+      );
       
       if (cacheKeys.length > 0) {
         await storageAPI.storage.local.remove(cacheKeys);
-        showNotification(`Cleared ${cacheKeys.length} cached entries`, "success");
+        await updateCacheStats(); // Update stats after clearing
+        showNotification(`Cleared ${cacheKeys.length} cached entries (DOI + CSL styles)`, "success");
       } else {
         showNotification("No cached entries found", "info");
       }
@@ -175,6 +247,21 @@ async function clearCache(): Promise<void> {
       console.error("Error clearing cache:", error);
       showNotification("Error clearing cache", "error");
     }
+  }
+}
+
+/**
+ * Toggle advanced settings section
+ */
+function toggleAdvancedSettings(): void {
+  const isCollapsed = advancedBody.classList.contains("collapsed");
+  
+  if (isCollapsed) {
+    advancedBody.classList.remove("collapsed");
+    advancedHeader.classList.add("expanded");
+  } else {
+    advancedBody.classList.add("collapsed");
+    advancedHeader.classList.remove("expanded");
   }
 }
 
@@ -190,10 +277,47 @@ function showNotification(message: string, type: "success" | "error" | "info" = 
   }, 3000);
 }
 
+// Input validation listeners
+cacheDurationInput.addEventListener("input", () => validateInput(cacheDurationInput, 1, 168));
+maxRetriesInput.addEventListener("input", () => validateInput(maxRetriesInput, 0, 10));
+initialDelayInput.addEventListener("input", () => validateInput(initialDelayInput, 1, 10));
+rateLimitDelayInput.addEventListener("input", () => validateInput(rateLimitDelayInput, 1, 30));
+
+// Validate on blur to ensure final value is valid
+cacheDurationInput.addEventListener("blur", () => {
+  if (!validateInput(cacheDurationInput, 1, 168)) {
+    cacheDurationInput.value = String(DEFAULT_SETTINGS.cacheDurationHours);
+    validateInput(cacheDurationInput, 1, 168);
+  }
+});
+
+maxRetriesInput.addEventListener("blur", () => {
+  if (!validateInput(maxRetriesInput, 0, 10)) {
+    maxRetriesInput.value = String(DEFAULT_SETTINGS.maxRetries);
+    validateInput(maxRetriesInput, 0, 10);
+  }
+});
+
+initialDelayInput.addEventListener("blur", () => {
+  if (!validateInput(initialDelayInput, 1, 10)) {
+    initialDelayInput.value = String(DEFAULT_SETTINGS.initialRetryDelay);
+    validateInput(initialDelayInput, 1, 10);
+  }
+});
+
+rateLimitDelayInput.addEventListener("blur", () => {
+  if (!validateInput(rateLimitDelayInput, 1, 30)) {
+    rateLimitDelayInput.value = String(DEFAULT_SETTINGS.rateLimitDelay);
+    validateInput(rateLimitDelayInput, 1, 30);
+  }
+});
+
 // Event listeners
 saveBtn.addEventListener("click", saveSettings);
 resetBtn.addEventListener("click", resetSettings);
 clearCacheBtn.addEventListener("click", clearCache);
+advancedHeader.addEventListener("click", toggleAdvancedSettings);
 
-// Load settings on page load
+// Load settings and cache stats on page load
 loadSettings();
+updateCacheStats();

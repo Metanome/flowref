@@ -14,7 +14,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     // Modern Clipboard API (preferred)
     if (navigator.clipboard && navigator.clipboard.write) {
       // Create both HTML and plain text versions
-      const plainText = text.replace(/<em>/g, '').replace(/<\/em>/g, '');
+      // Use DOM parser to strip tags and decode entities correctly
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      const plainText = doc.body.textContent || "";
       
       const clipboardItems = [];
       
@@ -43,7 +45,8 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       return true;
     } else if (navigator.clipboard && navigator.clipboard.writeText) {
       // Fallback: writeText only supports plain text
-      const plainText = text.replace(/<em>/g, '').replace(/<\/em>/g, '');
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      const plainText = doc.body.textContent || "";
       await navigator.clipboard.writeText(plainText);
       return true;
     }

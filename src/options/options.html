@@ -5,17 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowRef - Batch Mode</title>
   <link rel="stylesheet" href="options.css">
+  <link rel="stylesheet" href="../core/stylePicker.css">
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>FlowRef - Batch Mode</h1>
-      <p class="subtitle">Generate multiple citations at once</p>
+      <div class="header-content">
+        <div>
+          <h1>FlowRef - Batch Mode</h1>
+          <p class="subtitle">Generate multiple citations at once</p>
+        </div>
+        <a href="#" id="settings-link" class="settings-btn" title="Settings">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </a>
+      </div>
     </header>
 
-    <section class="section">
+    <section class="options-card">
       <h2>Batch DOI Input</h2>
-      <p class="help-text">Enter multiple DOIs, one per line, or upload PDF files:</p>
+      <p class="help-text">Enter multiple DOIs or article URLs (one per line), or upload PDF files:</p>
       
       <!-- Tab Navigation -->
       <div class="tab-nav">
@@ -27,7 +38,7 @@
       <div id="text-input-tab" class="tab-content active">
         <textarea 
           id="doi-list" 
-          placeholder="10.xxxx/xxxxx&#10;10.yyyy/yyyyy&#10;10.zzzz/zzzzz"
+          placeholder="Enter DOIs or article URLs, one per line:&#10;10.xxxx/xxxxx&#10;https://www.nature.com/articles/...&#10;https://doi.org/10.yyyy/yyyyy"
           rows="8"
         ></textarea>
       </div>
@@ -48,13 +59,7 @@
       <div class="controls">
         <div class="control-group">
           <label for="batch-style">Citation Style</label>
-          <select id="batch-style">
-            <option value="apa">APA 7th Edition</option>
-            <option value="mla">MLA 9th Edition</option>
-            <option value="chicago">Chicago 17th Edition</option>
-            <option value="vancouver">Vancouver</option>
-            <option value="ieee">IEEE</option>
-          </select>
+          <div id="batch-style"></div>
         </div>
         
         <button id="process-btn" class="btn-primary">Process All</button>
@@ -69,7 +74,7 @@
       <button id="cancel-btn" class="btn-cancel">Cancel</button>
     </div>
 
-    <section id="results-section" class="section hidden">
+    <section id="results-section" class="options-card hidden">
       <h2>Results</h2>
       
       <div class="results-actions">
@@ -82,10 +87,6 @@
 
       <div id="results-container"></div>
     </section>
-
-    <footer>
-      <a href="#" id="settings-link">Settings</a>
-    </footer>
   </div>
 
   <script src="options.js"></script>

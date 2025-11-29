@@ -1,12 +1,17 @@
 # FlowRef
 
-Fast DOI-based citation generator for academic research. Open-source, privacy-friendly citation tool supporting multiple styles with batch processing and PDF support.
+A modern, professional citation generator for academic research. Generate accurate citations from DOIs with support for thousands of styles, batch processing, and PDF extraction.
 
 ## Features
 
+**Modern Interface**
+- Color-coded visual feedback for status and validation
+- Real-time DOI and URL validation with professional messaging
+- Searchable style picker with access to thousands of CSL styles
+
 **Core Functionality**
-- Automatic DOI detection from web pages and PDF files
-- Five citation styles: APA 7th, MLA 9th, Chicago 17th, IEEE, Vancouver
+- Automatic DOI detection from web pages and PDF documents
+- Full CSL repository support (APA, MLA, Chicago, Harvard, IEEE, Vancouver, and thousands more)
 - In-text citations (parenthetical and narrative formats)
 - BibTeX export for LaTeX users
 - Batch processing for multiple DOIs or PDF files
@@ -20,27 +25,34 @@ Fast DOI-based citation generator for academic research. Open-source, privacy-fr
 - Automatic retry logic for API reliability
 
 **Advanced Features**
-- Settings page for customization
+- Dedicated settings page for customization
 - Duplicate DOI detection in batch mode
 - Retry failed entries functionality
-- Book and article support
+- Support for books, articles, and other publication types
 
 ## Citation Styles
 
-**Full Reference Citations**
-- APA 7th Edition (social sciences)
-- MLA 9th Edition (humanities)
-- Chicago 17th Edition (notes-bibliography)
-- IEEE (engineering and technology)
-- Vancouver (medical and life sciences)
-- BibTeX (LaTeX bibliography)
+FlowRef supports the full CSL (Citation Style Language) repository, providing access to thousands of academic citation styles.
 
-**In-Text Citations**
-- APA: `(Smith, 2020)` and `Smith (2020)`
-- MLA: `(Smith)` and `Smith`
-- Chicago: `[1]` and `Smith[1]`
-- IEEE: `[1]` and `Smith [1]`
-- Vancouver: `(1)` and `Smith (1)`
+**Popular Styles (Pre-loaded)**
+- APA 7th Edition
+- MLA 9th Edition
+- Chicago 17th Edition
+- Harvard
+- IEEE
+- Vancouver
+- More...
+
+**Style Search**
+- Search for specific journal styles (e.g., Nature, Science, PLOS ONE)
+- Browse by category (Psychology, Medicine, Engineering, etc.)
+- Your preferred style is saved automatically across all pages
+
+**Output Formats**
+- Full reference (formatted bibliography entry)
+- In-text parenthetical: `(Smith, 2020)`
+- In-text narrative: `Smith (2020)`
+- BibTeX entry for LaTeX
 
 ## Browser Compatibility
 
@@ -50,6 +62,10 @@ Fast DOI-based citation generator for academic research. Open-source, privacy-fr
 - Other WebExtensions-compatible browsers
 
 ## Installation
+
+### Firefox (Recommended)
+
+Install directly from [Firefox Add-ons](https://addons.mozilla.org/en-GB/firefox/addon/flowref/)
 
 ### From Source
 
@@ -81,19 +97,19 @@ Chrome: Navigate to `chrome://extensions/` > Enable "Developer mode" > "Load unp
 ### Single Citation
 
 1. Visit a page with a DOI or open the extension popup
-2. DOI will be auto-detected (if enabled in settings) or enter manually
-3. Select citation style (APA, MLA, Chicago, IEEE, Vancouver)
-4. Click "Generate Citation"
-5. Citation automatically copied to clipboard
+2. DOI is auto-detected (indicated by green status bar) or enter manually
+3. Select citation style from the searchable dropdown
+4. Click "Format"
+5. Citation is generated and automatically copied to clipboard
 
 ### Batch Mode
 
-1. Click "Open Batch Mode" link in popup
-2. Enter multiple DOIs (one per line) or upload PDF files
-3. Select citation style
-4. Click "Process All"
-5. Copy all citations or download as .bib file
-6. Use "Retry Failed" button to reprocess any errors
+1. Click "Open Batch Mode" in the popup footer
+2. Use the Text tab to paste multiple DOIs (one per line)
+3. Use the PDF tab to drag and drop PDF files
+4. Select citation style
+5. Click "Process All"
+6. Copy all citations or download as .bib file
 
 ### Context Menu
 
@@ -124,6 +140,7 @@ Access via "Settings" link in popup or batch mode. Configure:
 **Architecture**
 - TypeScript codebase compiled with esbuild
 - Manifest V3 for Firefox and Chrome
+- Modular component system (StylePicker, StatusBar)
 - Local storage for settings and metadata cache
 - Content script for PDF DOI extraction
 - Background service worker for context menu integration
@@ -162,7 +179,10 @@ FlowRef/
 │   ├── settings/       # Settings page
 │   ├── background/     # Context menu and lifecycle
 │   ├── content/        # PDF DOI detection
-│   └── core/           # Citation formatting and metadata
+│   └── core/           # Shared components, formatters, and utilities
+│       ├── stylePicker.ts   # Searchable style dropdown component
+│       ├── cslRepository.ts # CSL style fetching and caching
+│       └── formatters/      # CSL and BibTeX formatting
 ├── icons/              # Extension icons
 ├── manifest.*.json     # Browser-specific manifests
 └── dist/               # Build output

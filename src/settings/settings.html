@@ -5,96 +5,168 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowRef Settings</title>
   <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="../core/stylePicker.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>FlowRef Settings</h1>
+  <div class="settings-container">
+    <header class="settings-header">
+      <h1>Settings</h1>
       <p class="subtitle">Customize your citation generation experience</p>
     </header>
 
-    <main>
+    <main class="settings-content">
       <!-- Citation Preferences -->
-      <section class="settings-section">
-        <h2>Citation Preferences</h2>
-        
-        <div class="setting-item">
-          <label for="default-style">Default Citation Style</label>
-          <select id="default-style" class="setting-input">
-            <option value="apa">APA (7th Edition)</option>
-            <option value="mla">MLA (9th Edition)</option>
-            <option value="chicago">Chicago (17th Edition)</option>
-            <option value="vancouver">Vancouver</option>
-            <option value="ieee">IEEE</option>
-          </select>
-          <p class="setting-description">The citation style used by default in both popup and batch mode</p>
+      <section class="settings-card">
+        <div class="card-header">
+          <h2>Citation Preferences</h2>
         </div>
+        <div class="card-body">
+          <div class="setting-group">
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label for="default-style" class="setting-label">Default Citation Style</label>
+                <p class="setting-description">Style used by default in popup and batch mode</p>
+              </div>
+              <div id="default-style" class="setting-control"></div>
+            </div>
 
-        <div class="setting-item">
-          <label>
-            <input type="checkbox" id="auto-detect-doi" class="setting-checkbox">
-            <span>Auto-detect DOI from webpage</span>
-          </label>
-          <p class="setting-description">Automatically detect and populate DOI when visiting academic pages</p>
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label class="setting-label">Auto-detect DOI
+                  <span class="tooltip" data-tooltip="Automatically detect and populate DOI when visiting academic pages">?</span>
+                </label>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="auto-detect-doi">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- Performance & Caching -->
-      <section class="settings-section">
-        <h2>Performance & Caching</h2>
-        
-        <div class="setting-item">
-          <label for="cache-duration">Cache Duration (hours)</label>
-          <input type="number" id="cache-duration" class="setting-input" min="1" max="168" value="24">
-          <p class="setting-description">How long to cache metadata before refetching (1-168 hours)</p>
+      <section class="settings-card">
+        <div class="card-header">
+          <h2>Performance & Caching</h2>
         </div>
+        <div class="card-body">
+          <div class="setting-group">
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label class="setting-label">Enable Caching
+                  <span class="tooltip" data-tooltip="Cache fetched metadata to reduce API calls and improve speed">?</span>
+                </label>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="enable-caching" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
 
-        <div class="setting-item">
-          <label>
-            <input type="checkbox" id="enable-caching" class="setting-checkbox" checked>
-            <span>Enable metadata caching</span>
-          </label>
-          <p class="setting-description">Cache fetched metadata to reduce API calls and improve speed</p>
-        </div>
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label for="cache-duration" class="setting-label">Cache Duration
+                  <span class="tooltip" data-tooltip="How long to keep cached data before refetching (1-168 hours)">?</span>
+                </label>
+                <p class="setting-description">Hours to keep cached metadata</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-group">
+                  <input type="number" id="cache-duration" class="setting-input" min="1" max="168" value="24">
+                  <span class="input-suffix">hours</span>
+                  <span class="validation-icon" id="cache-duration-validation"></span>
+                </div>
+              </div>
+            </div>
 
-        <div class="setting-item">
-          <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-          <p class="setting-description">Remove all cached metadata (useful for troubleshooting)</p>
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label class="setting-label">Cache Management</label>
+                <p class="setting-description" id="cache-stats">Loading cache statistics...</p>
+              </div>
+              <div class="setting-control">
+                <button id="clear-cache-btn" class="btn-secondary btn-small">Clear Cache</button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- API & Retry Settings -->
-      <section class="settings-section">
-        <h2>API & Retry Settings</h2>
-        
-        <div class="setting-item">
-          <label for="max-retries">Maximum Retry Attempts</label>
-          <input type="number" id="max-retries" class="setting-input" min="0" max="10" value="3">
-          <p class="setting-description">Number of times to retry failed API requests (0-10)</p>
+      <!-- Advanced Settings -->
+      <section class="settings-card">
+        <div class="card-header clickable" id="advanced-header">
+          <h2>Advanced Settings</h2>
+          <span class="expand-icon">▼</span>
         </div>
+        <div class="card-body collapsed" id="advanced-body">
+          <div class="setting-group">
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label for="max-retries" class="setting-label">Maximum Retry Attempts
+                  <span class="tooltip" data-tooltip="Number of times to retry failed API requests">?</span>
+                </label>
+                <p class="setting-description">0-10 retries per request</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-group">
+                  <input type="number" id="max-retries" class="setting-input" min="0" max="10" value="3">
+                  <span class="input-suffix">retries</span>
+                  <span class="validation-icon" id="max-retries-validation"></span>
+                </div>
+              </div>
+            </div>
 
-        <div class="setting-item">
-          <label for="initial-delay">Initial Retry Delay (seconds)</label>
-          <input type="number" id="initial-delay" class="setting-input" min="1" max="10" step="0.5" value="1">
-          <p class="setting-description">Starting delay before first retry (uses exponential backoff)</p>
-        </div>
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label for="initial-delay" class="setting-label">Initial Retry Delay
+                  <span class="tooltip" data-tooltip="Starting delay before first retry (uses exponential backoff)">?</span>
+                </label>
+                <p class="setting-description">1-10 seconds</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-group">
+                  <input type="number" id="initial-delay" class="setting-input" min="1" max="10" step="0.5" value="1">
+                  <span class="input-suffix">seconds</span>
+                  <span class="validation-icon" id="initial-delay-validation"></span>
+                </div>
+              </div>
+            </div>
 
-        <div class="setting-item">
-          <label for="rate-limit-delay">Rate Limit Delay (seconds)</label>
-          <input type="number" id="rate-limit-delay" class="setting-input" min="1" max="30" value="4">
-          <p class="setting-description">Initial delay when rate limited (429 error)</p>
+            <div class="setting-row">
+              <div class="setting-label-group">
+                <label for="rate-limit-delay" class="setting-label">Rate Limit Delay
+                  <span class="tooltip" data-tooltip="Delay when receiving 429 rate limit errors from API">?</span>
+                </label>
+                <p class="setting-description">1-30 seconds</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-group">
+                  <input type="number" id="rate-limit-delay" class="setting-input" min="1" max="30" value="4">
+                  <span class="input-suffix">seconds</span>
+                  <span class="validation-icon" id="rate-limit-delay-validation"></span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
-
-      <!-- Actions -->
-      <div class="actions">
-        <button id="save-btn" class="btn-primary">Save Settings</button>
-        <button id="reset-btn" class="btn-secondary">Reset to Defaults</button>
-      </div>
-
-      <!-- Notification -->
-      <div id="notification" class="notification"></div>
     </main>
+
+    <!-- Sticky Action Bar -->
+    <div class="action-bar">
+      <div class="action-bar-content">
+        <button id="reset-btn" class="btn-secondary">Reset to Defaults</button>
+        <button id="save-btn" class="btn-primary">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
   </div>
 
   <script src="settings.js"></script>

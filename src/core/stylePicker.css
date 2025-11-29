@@ -1,0 +1,250 @@
+/**
+ * Style Picker CSS
+ * Searchable dropdown component styles
+ */
+
+.style-picker-container {
+  position: relative;
+  width: 100%;
+}
+
+.style-picker-wrapper {
+  position: relative;
+}
+
+.style-picker-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.style-picker-selected:hover {
+  border-color: #0066cc;
+}
+
+.style-name {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+}
+
+.style-arrow {
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.style-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.style-picker-dropdown.open-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.style-picker-dropdown.hidden {
+  display: none;
+}
+
+.style-picker-search {
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.style-picker-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.style-picker-input:focus {
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.style-picker-list {
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.style-picker-category {
+  padding: 8px 12px;
+  background: #f5f5f5;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid #eee;
+}
+
+.style-picker-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.style-picker-item:hover {
+  background: #f0f7ff;
+}
+
+.style-picker-item.selected {
+  background: #e6f2ff;
+  color: #0066cc;
+  font-weight: 500;
+}
+
+.style-picker-no-results {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.style-picker-browse-all {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.style-picker-browse-all:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.style-picker-browse-all:active {
+  transform: translateY(0);
+}
+
+.style-picker-loading {
+  padding: 20px;
+  text-align: center;
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.style-picker-back-btn {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.style-picker-back-btn:hover {
+  background: #ebebeb;
+}
+
+/* Style badges */
+.style-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.style-picker-item .style-name {
+  flex: 1;
+}
+
+.style-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
+.style-badge-author-date {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.style-badge-numeric {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.style-badge-note {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.style-badge-label {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.style-badge-author {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.style-badge-dependent {
+  background: #f5f5f5;
+  color: #757575;
+  font-style: italic;
+}
+
+/* Scrollbar styling */
+.style-picker-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.style-picker-list::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+.style-picker-list::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.style-picker-list::-webkit-scrollbar-thumb:hover {
+  background: #ccc;
+}

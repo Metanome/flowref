@@ -21,8 +21,9 @@ export type ContainerType = "journal" | "book" | "conference" | "preprint" | "ot
 
 /**
  * Supported citation styles
+ * Now supports any CSL style ID
  */
-export type CitationStyle = "apa" | "mla" | "chicago" | "vancouver" | "ieee";
+export type CitationStyle = string;
 
 /**
  * Variant for in-text citations

@@ -42,6 +42,8 @@ echo [3/6] Copying CSS files...
 copy /Y src\popup\popup.css dist\popup\popup.css >nul
 copy /Y src\options\options.css dist\options\options.css >nul
 copy /Y src\settings\settings.css dist\settings\settings.css >nul
+if not exist dist\core mkdir dist\core
+copy /Y src\core\stylePicker.css dist\core\stylePicker.css >nul
 
 echo [4/6] Copying content script...
 if not exist dist\content mkdir dist\content

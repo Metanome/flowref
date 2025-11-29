@@ -5,50 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlowRef</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="../core/stylePicker.css">
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <header>
-      <h1>FlowRef</h1>
-      <p class="subtitle">Fast DOI-based citation generator</p>
-    </header>
-
-    <!-- DOI Detection Section -->
-    <section class="section">
-      <label for="doi-input">DOI</label>
-      <div class="doi-controls">
-        <select id="doi-select" class="hidden">
-          <option value="">Select a DOI...</option>
-        </select>
-        <input 
-          type="text" 
-          id="doi-input" 
-          placeholder="10.xxxx/xxxxx or paste DOI" 
-          autocomplete="off"
-        >
-        <button id="detect-btn" class="btn-secondary">Detect</button>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <div>
+        <h1>FlowRef</h1>
+        <p class="subtitle">Fast DOI-based citation generator</p>
       </div>
-      <div id="validation-feedback" class="validation-feedback"></div>
-      <div id="detection-status" class="status-message"></div>
-    </section>
+      <a href="#" id="settings-link" class="settings-btn" title="Settings">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </a>
+    </div>
+  </header>
 
-    <!-- Citation Style Section -->
-    <section class="section">
-      <label for="style-select">Citation Style</label>
-      <select id="style-select">
-        <option value="apa">APA 7th Edition</option>
-        <option value="mla">MLA 9th Edition</option>
-        <option value="chicago">Chicago 17th Edition</option>
-        <option value="vancouver">Vancouver</option>
-        <option value="ieee">IEEE</option>
-      </select>
-    </section>
+  <!-- Fixed Controls Area -->
+  <div class="app-controls">
+    <!-- Unified Composer Card -->
+    <div class="composer-card">
+      
+      <!-- Input Area -->
+      <div class="input-group-wrapper">
+        <div class="input-row">
+          <div class="input-container">
+            <input 
+              type="text" 
+              id="doi-input" 
+              placeholder="Paste DOI or URL..." 
+              autocomplete="off"
+            >
+          </div>
+          
+          <button id="detect-btn" class="btn-icon" title="Detect from current tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+              <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </button>
+        </div>
 
-    <!-- Generate Button -->
-    <section class="section">
-      <button id="generate-btn" class="btn-primary">Generate Citation</button>
-    </section>
+        <!-- Unified Status Bar -->
+        <div id="status-bar" class="status-bar hidden">
+          <span id="status-message"></span>
+        </div>
+
+        <!-- Controls Row -->
+        <div class="controls-row">
+          <div class="style-picker-wrapper">
+            <div id="style-picker"></div>
+          </div>
+          <button id="generate-btn" class="btn-primary">
+            <span>Format</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hidden Select (Required by logic) -->
+      <select id="doi-select" class="hidden"></select>
+    </div>
+  </div>
+
+  <!-- Main Scrollable Area -->
+  <main class="app-content">
 
     <!-- Loading Indicator -->
     <div id="loading" class="loading hidden">
@@ -56,49 +83,65 @@
       <span>Fetching metadata...</span>
     </div>
 
-    <!-- Error Message -->
-    <div id="error" class="error-message hidden"></div>
-
     <!-- Output Section -->
     <section id="output-section" class="section hidden">
-      <h3>Citation</h3>
+      <div class="results-header">
+        <h3>Citation</h3>
+      </div>
       
       <!-- Full Reference -->
       <div class="output-group">
-        <label>Full Reference</label>
+        <div class="output-label-row">
+          <label>Full Reference</label>
+          <button class="btn-copy btn-copy-icon" data-target="reference" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
         <div class="output-box" id="reference-output"></div>
-        <button class="btn-copy" data-target="reference">Copy</button>
       </div>
 
       <!-- In-text (Parenthetical) -->
       <div class="output-group">
-        <label>In-text (Parenthetical)</label>
+        <div class="output-label-row">
+          <label>In-text (Parenthetical)</label>
+          <button class="btn-copy btn-copy-icon" data-target="intext-parens" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
         <div class="output-box output-box-small" id="intext-parens-output"></div>
-        <button class="btn-copy" data-target="intext-parens">Copy</button>
       </div>
 
       <!-- In-text (Narrative) -->
       <div class="output-group">
-        <label>In-text (Narrative)</label>
+        <div class="output-label-row">
+          <label>In-text (Narrative)</label>
+          <button class="btn-copy btn-copy-icon" data-target="intext-narrative" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
         <div class="output-box output-box-small" id="intext-narrative-output"></div>
-        <button class="btn-copy" data-target="intext-narrative">Copy</button>
       </div>
 
       <!-- BibTeX -->
       <div class="output-group">
-        <label>BibTeX</label>
+        <div class="output-label-row">
+          <label>BibTeX</label>
+          <button class="btn-copy btn-copy-icon" data-target="bibtex" title="Copy to clipboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
         <div class="output-box output-box-code" id="bibtex-output"></div>
-        <button class="btn-copy" data-target="bibtex">Copy</button>
       </div>
     </section>
+  </main>
 
-    <!-- Footer Links -->
-    <footer>
-      <a href="#" id="batch-mode-link">Open Batch Mode</a>
-      <span class="separator">•</span>
-      <a href="#" id="settings-link">Settings</a>
-    </footer>
-  </div>
+  <!-- Footer (Fixed) -->
+  <footer class="app-footer">
+    <a href="#" id="batch-mode-link" class="btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+      <span>Open Batch Mode</span>
+    </a>
+  </footer>
 
   <script src="popup.js"></script>
 </body>

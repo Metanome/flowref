@@ -2,29 +2,28 @@
  * Popup script for FlowRef
  */
 
-import { normalizeDOI, isValidDOI, detectDOIsFromText } from "../core/doi";
+import { normalizeDOI, isValidDOI, detectDOIsFromText, isURL, fetchDOIFromURL } from "../core/doi";
 import { fetchMetadata } from "../core/metadata";
-import { formatReferenceAPA } from "../core/formatters/apa";
-import { formatReferenceMLA } from "../core/formatters/mla";
-import { formatReferenceChicago } from "../core/formatters/chicago";
-import { formatReferenceVancouver } from "../core/formatters/vancouver";
-import { formatReferenceIEEE } from "../core/formatters/ieee";
-import { formatInTextAPA, formatInTextMLA, formatInTextChicago, formatInTextIEEE, formatInTextVancouver } from "../core/inText";
+import { formatReference, formatInTextParenthetical, formatInTextNarrative } from "../core/formatters/csl";
 import { formatBibTeX } from "../core/formatters/bibtex";
 import { copyToClipboard, showNotification } from "../core/clipboard";
 import { MessageType, ExtensionMessage, DOIDetectionResult, CitationMetadata, CitationStyle } from "../core/types";
 import { extractDOIFromPDF } from "../core/pdf";
+import { StylePicker } from "../core/stylePicker";
+import { initializePopularStyles } from "../core/styles";
+
+// Initialize popular styles with real CSL metadata (async, non-blocking)
+initializePopularStyles();
 
 // DOM elements
 const doiSelect = document.getElementById("doi-select") as HTMLSelectElement;
 const doiInput = document.getElementById("doi-input") as HTMLInputElement;
 const detectBtn = document.getElementById("detect-btn") as HTMLButtonElement;
-const validationFeedback = document.getElementById("validation-feedback") as HTMLDivElement;
-const detectionStatus = document.getElementById("detection-status") as HTMLDivElement;
-const styleSelect = document.getElementById("style-select") as HTMLSelectElement;
+const statusBar = document.getElementById("status-bar") as HTMLDivElement;
+const statusMessage = document.getElementById("status-message") as HTMLSpanElement;
+const stylePickerContainer = document.getElementById("style-picker") as HTMLDivElement;
 const generateBtn = document.getElementById("generate-btn") as HTMLButtonElement;
 const loading = document.getElementById("loading") as HTMLDivElement;
-const errorDiv = document.getElementById("error") as HTMLDivElement;
 const outputSection = document.getElementById("output-section") as HTMLElement;
 const batchModeLink = document.getElementById("batch-mode-link") as HTMLAnchorElement;
 const settingsLink = document.getElementById("settings-link") as HTMLAnchorElement;
@@ -44,6 +43,7 @@ let currentCitations: {
   intextNarrative: string;
   bibtex: string;
 } | null = null;
+let stylePicker: StylePicker;
 
 /**
  * Load saved citation style preference
@@ -53,7 +53,7 @@ async function loadStylePreference(): Promise<void> {
     const browserAPI = (typeof browser !== "undefined") ? browser : chrome;
     const result = await browserAPI.storage.local.get("citationStyle");
     if (result.citationStyle) {
-      styleSelect.value = result.citationStyle;
+      stylePicker.setSelectedStyle(result.citationStyle);
     }
   } catch (error) {
     console.error("Failed to load style preference:", error);
@@ -73,11 +73,42 @@ async function saveStylePreference(style: string): Promise<void> {
 }
 
 /**
+ * Update the unified status bar
+ */
+function updateStatus(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'hidden'): void {
+  if (type === 'hidden') {
+    statusBar.classList.add('hidden');
+    return;
+  }
+  
+  statusBar.classList.remove('hidden', 'info', 'success', 'warning', 'error');
+  statusBar.classList.add(type);
+  statusMessage.textContent = message;
+}
+
+/**
+ * Set visual feedback on a specific element
+ */
+function setVisualFeedback(target: 'input' | 'button', status: 'success' | 'warning' | 'error' | 'neutral'): void {
+  // Reset both first to ensure exclusivity
+  doiInput.classList.remove('valid', 'invalid');
+  detectBtn.classList.remove('success', 'warning', 'error');
+
+  if (status === 'neutral') return;
+
+  if (target === 'input') {
+    if (status === 'success') doiInput.classList.add('valid');
+    if (status === 'error') doiInput.classList.add('invalid');
+  } else if (target === 'button') {
+    detectBtn.classList.add(status);
+  }
+}
+
+/**
  * Show error message
  */
 function showError(message: string): void {
-  errorDiv.textContent = message;
-  errorDiv.classList.remove("hidden");
+  updateStatus(message, 'error');
   outputSection.classList.add("hidden");
 }
 
@@ -85,7 +116,7 @@ function showError(message: string): void {
  * Hide error message
  */
 function hideError(): void {
-  errorDiv.classList.add("hidden");
+  updateStatus('', 'hidden');
 }
 
 /**
@@ -109,8 +140,7 @@ function hideLoading(): void {
  */
 async function detectDOIsFromTab(): Promise<void> {
   try {
-    detectionStatus.textContent = "Detecting DOI...";
-    detectionStatus.className = "status-message status-info";
+    updateStatus("Scanning page for DOI...", "info");
     
     // Cross-browser API compatibility
     const browserAPI = (typeof browser !== "undefined") ? browser : chrome;
@@ -134,8 +164,7 @@ async function detectDOIsFromTab(): Promise<void> {
     if (isPDF) {
       // For PDFs, try content script first (works for embedded PDFs on web pages)
       // Then fall back to fetch + PDF.js (works for direct PDF URLs)
-      detectionStatus.textContent = "Detected PDF, attempting to extract DOI...";
-      detectionStatus.className = "status-message status-info";
+      updateStatus("PDF detected - extracting DOI...", "info");
       
       try {
         // Try content script first (works for embedded PDFs like https://example.com/article.pdf)
@@ -160,7 +189,7 @@ async function detectDOIsFromTab(): Promise<void> {
           
           // If content script returned pendingPDF, wait longer and retry
           if (result && (result as any).pendingPDF) {
-            detectionStatus.textContent = "Loading PDF... (retrying)";
+            updateStatus("Loading PDF content...", "info");
             await new Promise(resolve => setTimeout(resolve, 2500)); // Increased wait time
             
             const retryResponse = await browserAPI.tabs.sendMessage(tab.id, {
@@ -192,13 +221,15 @@ async function detectDOIsFromTab(): Promise<void> {
         // Provide more specific error message
         const errorMsg = pdfError instanceof Error ? pdfError.message : "Unknown error";
         if (errorMsg.includes("HTTP") || errorMsg.includes("fetch")) {
-          detectionStatus.textContent = "Cannot access PDF (try: Upload in Batch Mode instead)";
+          updateStatus("Cannot access PDF (try Batch Mode upload)", "warning");
+          setVisualFeedback('button', 'warning');
         } else if (errorMsg.includes("file://")) {
-          detectionStatus.textContent = "Local PDFs blocked by browser (use Batch Mode → PDF Upload)";
+          updateStatus("Local PDF access restricted (use Batch Mode)", "warning");
+          setVisualFeedback('button', 'warning');
         } else {
-          detectionStatus.textContent = "Could not extract DOI from PDF (try manual entry)";
+          updateStatus("DOI not found in PDF (enter manually)", "warning");
+          setVisualFeedback('button', 'warning');
         }
-        detectionStatus.className = "status-message status-warning";
         return;
       }
     }
@@ -217,8 +248,8 @@ async function detectDOIsFromTab(): Promise<void> {
       console.log("FlowRef popup: Received response:", response);
     } catch (error) {
       console.error("FlowRef popup: Message failed:", error);
-      detectionStatus.textContent = "Content script not loaded (try refreshing page)";
-      detectionStatus.className = "status-message status-error";
+      updateStatus("Connection failed (please refresh page)", "error");
+      setVisualFeedback('button', 'error');
       return;
     }
     
@@ -226,8 +257,7 @@ async function detectDOIsFromTab(): Promise<void> {
     
     // If PDF is pending (text layer not loaded), retry after delay
     if (result && (result as any).pendingPDF) {
-      detectionStatus.textContent = "Loading PDF... (retrying)";
-      detectionStatus.className = "status-message status-info";
+      updateStatus("Loading PDF content...", "info");
       
       await new Promise(resolve => setTimeout(resolve, 1500));
       
@@ -239,8 +269,8 @@ async function detectDOIsFromTab(): Promise<void> {
         const retryResult = retryResponse.payload;
         
         if (!retryResult || retryResult.dois.length === 0) {
-          detectionStatus.textContent = "No DOI found in PDF";
-          detectionStatus.className = "status-message status-warning";
+          updateStatus("No DOI found in PDF document", "warning");
+          setVisualFeedback('button', 'warning');
           detectedDOIs = [];
           doiInput.value = "";
           return;
@@ -251,15 +281,15 @@ async function detectDOIsFromTab(): Promise<void> {
         return;
       } catch (retryError) {
         console.error("FlowRef popup: Retry failed:", retryError);
-        detectionStatus.textContent = "Failed to extract DOI from PDF";
-        detectionStatus.className = "status-message status-error";
+        updateStatus("PDF extraction failed", "error");
+        setVisualFeedback('button', 'error');
         return;
       }
     }
     
     if (!result || result.dois.length === 0) {
-      detectionStatus.textContent = "No DOI found on this page";
-      detectionStatus.className = "status-message status-warning";
+      updateStatus("No DOI found on page", "warning");
+      setVisualFeedback('button', 'warning');
       detectedDOIs = [];
       doiInput.value = "";
       return;
@@ -268,8 +298,8 @@ async function detectDOIsFromTab(): Promise<void> {
     processDetectionResult(result);
   } catch (error) {
     console.error("Failed to detect DOI:", error);
-    detectionStatus.textContent = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
-    detectionStatus.className = "status-message status-error";
+    updateStatus(`Error: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
+    setVisualFeedback('button', 'error');
   }
 }
 
@@ -291,7 +321,7 @@ async function detectDOIFromPDFUrl(url: string): Promise<void> {
     
     const arrayBuffer = await response.arrayBuffer();
     
-    detectionStatus.textContent = "Extracting text from PDF...";
+    updateStatus("Analyzing PDF text...", "info");
     
     // Extract DOI using PDF.js
     const doi = await extractDOIFromPDF(arrayBuffer);
@@ -302,17 +332,17 @@ async function detectDOIFromPDFUrl(url: string): Promise<void> {
       if (normalized) {
         detectedDOIs = [normalized];
         doiInput.value = normalized;
-        detectionStatus.textContent = "DOI extracted from PDF";
-        detectionStatus.className = "status-message status-success";
+        updateStatus("DOI successfully extracted from PDF", "success");
+        setVisualFeedback('button', 'success');
         doiSelect.classList.add("hidden");
         doiInput.classList.remove("hidden");
       } else {
-        detectionStatus.textContent = "Invalid DOI format in PDF (try manual entry)";
-        detectionStatus.className = "status-message status-warning";
+        updateStatus("Invalid DOI format in PDF", "warning");
+        setVisualFeedback('button', 'warning');
       }
     } else {
-      detectionStatus.textContent = "No DOI found in PDF (try manual entry)";
-      detectionStatus.className = "status-message status-warning";
+      updateStatus("No DOI found in PDF", "warning");
+      setVisualFeedback('button', 'warning');
       detectedDOIs = [];
       doiInput.value = "";
     }
@@ -331,8 +361,8 @@ function processDetectionResult(result: DOIDetectionResult): void {
   if (detectedDOIs.length === 1) {
     // Single DOI: populate input directly
     doiInput.value = detectedDOIs[0];
-    detectionStatus.textContent = `DOI detected (${result.source})`;
-    detectionStatus.className = "status-message status-success";
+    updateStatus(`DOI detected via ${result.source}`, "success");
+    setVisualFeedback('button', 'success');
     doiSelect.classList.add("hidden");
     doiInput.classList.remove("hidden");
   } else {
@@ -347,8 +377,8 @@ function processDetectionResult(result: DOIDetectionResult): void {
     
     doiSelect.classList.remove("hidden");
     doiInput.classList.add("hidden");
-    detectionStatus.textContent = `${detectedDOIs.length} DOIs found`;
-    detectionStatus.className = "status-message status-success";
+    updateStatus(`${detectedDOIs.length} DOIs detected`, "success");
+    setVisualFeedback('button', 'success');
   }
 }
 
@@ -364,32 +394,52 @@ function getCurrentDOI(): string | null {
 }
 
 /**
- * Generate citation from DOI
+ * Generate citation from DOI or URL
  */
 async function generateCitation(): Promise<void> {
   hideError();
   
-  const doi = getCurrentDOI();
-  if (!doi) {
-    showError("Please enter or detect a DOI");
-    return;
-  }
-  
-  // Normalize and validate DOI
-  const normalizedDOI = normalizeDOI(doi);
-  if (!normalizedDOI || !isValidDOI(normalizedDOI)) {
-    showError("Invalid DOI format. Please check and try again.");
+  const input = getCurrentDOI();
+  if (!input) {
+    showError("Enter a DOI or article URL");
     return;
   }
   
   showLoading();
+  
+  let normalizedDOI: string | null = null;
+  
+  // Check if input is a URL
+  if (isURL(input)) {
+    try {
+      // Fetch DOI from URL
+      normalizedDOI = await fetchDOIFromURL(input);
+      if (!normalizedDOI) {
+        showError("Could not extract DOI from URL");
+        hideLoading();
+        return;
+      }
+    } catch (error) {
+      showError("URL fetch failed (check connection)");
+      hideLoading();
+      return;
+    }
+  } else {
+    // Normalize and validate as DOI
+    normalizedDOI = normalizeDOI(input);
+    if (!normalizedDOI || !isValidDOI(normalizedDOI)) {
+      showError("Invalid DOI format");
+      hideLoading();
+      return;
+    }
+  }
   
   try {
     // Fetch metadata
     const result = await fetchMetadata(normalizedDOI);
     
     if (!result.success || !result.data) {
-      showError(result.error || "Failed to fetch metadata");
+      showError(result.error || "Metadata retrieval failed");
       hideLoading();
       return;
     }
@@ -397,50 +447,12 @@ async function generateCitation(): Promise<void> {
     currentMetadata = result.data;
     
     // Get selected style
-    const style = styleSelect.value as CitationStyle;
+    const style = stylePicker.getSelectedStyle() as CitationStyle;
     
-    // Format citations based on selected style
-    let reference: string;
-    
-    switch (style) {
-      case "mla":
-        reference = formatReferenceMLA(currentMetadata);
-        break;
-      case "chicago":
-        reference = formatReferenceChicago(currentMetadata);
-        break;
-      case "vancouver":
-        reference = formatReferenceVancouver(currentMetadata, 1);
-        break;
-      case "ieee":
-        reference = formatReferenceIEEE(currentMetadata, 1);
-        break;
-      case "apa":
-      default:
-        reference = formatReferenceAPA(currentMetadata);
-        break;
-    }
-    
-    // In-text citations for all styles
-    let intextParens = "";
-    let intextNarrative = "";
-    
-    if (style === "apa") {
-      intextParens = formatInTextAPA(currentMetadata.authors, currentMetadata.year, "parenthetical");
-      intextNarrative = formatInTextAPA(currentMetadata.authors, currentMetadata.year, "narrative");
-    } else if (style === "mla") {
-      intextParens = formatInTextMLA(currentMetadata.authors, "parenthetical");
-      intextNarrative = formatInTextMLA(currentMetadata.authors, "narrative");
-    } else if (style === "chicago") {
-      intextParens = formatInTextChicago(currentMetadata.authors, 1, "parenthetical");
-      intextNarrative = formatInTextChicago(currentMetadata.authors, 1, "narrative");
-    } else if (style === "ieee") {
-      intextParens = formatInTextIEEE(currentMetadata.authors, 1, "parenthetical");
-      intextNarrative = formatInTextIEEE(currentMetadata.authors, 1, "narrative");
-    } else if (style === "vancouver") {
-      intextParens = formatInTextVancouver(currentMetadata.authors, 1, "parenthetical");
-      intextNarrative = formatInTextVancouver(currentMetadata.authors, 1, "narrative");
-    }
+    // Format citations using CSL
+    const reference = formatReference(currentMetadata, style, 1);
+    const intextParens = formatInTextParenthetical(currentMetadata, style, 1);
+    const intextNarrative = formatInTextNarrative(currentMetadata, style, 1);
     
     const bibtex = formatBibTeX(currentMetadata);
     
@@ -473,7 +485,7 @@ async function generateCitation(): Promise<void> {
     hideLoading();
   } catch (error) {
     console.error("Failed to generate citation:", error);
-    showError("An unexpected error occurred. Please try again.");
+    showError("An unexpected error occurred");
     hideLoading();
   }
 }
@@ -539,16 +551,24 @@ detectBtn.addEventListener("click", detectDOIsFromTab);
 generateBtn.addEventListener("click", generateCitation);
 
 /**
- * Handle style change
+ * Initialize style picker
  */
-styleSelect.addEventListener("change", () => {
-  saveStylePreference(styleSelect.value);
+function initializeStylePicker(): void {
+  stylePicker = new StylePicker("style-picker", "apa");
   
-  // If we have metadata, regenerate citation in new style
-  if (currentMetadata) {
-    generateCitation();
-  }
-});
+  // Load saved preference
+  loadStylePreference();
+  
+  // Save preference on change
+  stylePicker.onChange((styleId) => {
+    saveStylePreference(styleId);
+    
+    // If we have metadata, regenerate citation in new style
+    if (currentMetadata) {
+      generateCitation();
+    }
+  });
+}
 
 /**
  * Handle batch mode link
@@ -576,39 +596,41 @@ doiInput.addEventListener("keypress", (e) => {
 
 /**
  * Validate DOI input and show real-time feedback
+ * Supports both DOIs and URLs
  */
 function validateDOIInput(): void {
   const value = doiInput.value.trim();
   
   // Clear feedback if empty
   if (!value) {
-    doiInput.classList.remove("valid", "invalid");
-    validationFeedback.textContent = "";
-    validationFeedback.className = "validation-feedback";
+    updateStatus("", "hidden");
+    setVisualFeedback('input', 'neutral');
     return;
   }
   
   // Don't validate if too short
   if (value.length < 5) {
-    doiInput.classList.remove("valid", "invalid");
-    validationFeedback.textContent = "";
-    validationFeedback.className = "validation-feedback";
+    updateStatus("", "hidden");
+    setVisualFeedback('input', 'neutral');
     return;
   }
   
-  // Normalize and validate
-  const normalized = normalizeDOI(value);
-  
-  if (normalized && isValidDOI(normalized)) {
-    doiInput.classList.remove("invalid");
-    doiInput.classList.add("valid");
-    validationFeedback.textContent = "✓ Valid DOI format";
-    validationFeedback.className = "validation-feedback success";
+  // Check if it's a URL
+  if (isURL(value)) {
+    // Show info that we'll fetch it
+    updateStatus("URL detected - ready to extract DOI", "success");
+    setVisualFeedback('input', 'success');
   } else {
-    doiInput.classList.remove("valid");
-    doiInput.classList.add("invalid");
-    validationFeedback.textContent = "Invalid DOI format (should be 10.xxxx/...)";
-    validationFeedback.className = "validation-feedback error";
+    // Normalize and validate as DOI
+    const normalized = normalizeDOI(value);
+    
+    if (normalized && isValidDOI(normalized)) {
+      updateStatus("Valid DOI format", "success");
+      setVisualFeedback('input', 'success');
+    } else {
+      updateStatus("Invalid DOI format (expected 10.xxxx/...)", "error");
+      setVisualFeedback('input', 'error');
+    }
   }
 }
 
@@ -659,4 +681,5 @@ async function init(): Promise<void> {
 }
 
 // Run initialization
+initializeStylePicker();
 init();
