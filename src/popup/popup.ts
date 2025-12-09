@@ -375,6 +375,12 @@ function processDetectionResult(result: DOIDetectionResult): void {
       doiSelect.appendChild(option);
     });
     
+    // Add "Enter manually" option
+    const manualOption = document.createElement("option");
+    manualOption.value = "manual";
+    manualOption.textContent = "-- Enter manually --";
+    doiSelect.appendChild(manualOption);
+    
     doiSelect.classList.remove("hidden");
     doiInput.classList.add("hidden");
     updateStatus(`${detectedDOIs.length} DOIs detected`, "success");
@@ -534,7 +540,15 @@ function setupCopyButtons(): void {
  * Handle DOI select change
  */
 doiSelect.addEventListener("change", () => {
-  if (doiSelect.value) {
+  if (doiSelect.value === "manual") {
+    // Switch to manual entry mode
+    doiSelect.classList.add("hidden");
+    doiInput.classList.remove("hidden");
+    doiInput.value = "";
+    doiInput.focus();
+    updateStatus("", "hidden");
+    setVisualFeedback('input', 'neutral');
+  } else if (doiSelect.value) {
     // User selected a DOI from dropdown
     hideError();
   }
@@ -647,11 +661,7 @@ async function init(): Promise<void> {
   setupCopyButtons();
   
   // Add DOI select change handler
-  doiSelect.addEventListener("change", () => {
-    if (doiSelect.value) {
-      doiInput.value = doiSelect.value;
-    }
-  });
+  // Note: The main change handler is already attached above
   
   // Check for pending DOI from context menu
   const browserAPI = (typeof browser !== "undefined") ? browser : chrome;

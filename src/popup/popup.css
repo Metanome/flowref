@@ -142,7 +142,7 @@ h1 {
   align-items: center;
 }
 
-#doi-input {
+#doi-input, #doi-select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -152,28 +152,28 @@ h1 {
   transition: all 0.2s;
 }
 
-#doi-input:focus {
+#doi-input:focus, #doi-select:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
 }
 
 /* Input Validation States */
-#doi-input.valid {
+#doi-input.valid, #doi-select.valid {
   border-color: var(--success-color);
   background-color: #f8fff9;
 }
 
-#doi-input.valid:focus {
+#doi-input.valid:focus, #doi-select.valid:focus {
   box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.15);
 }
 
-#doi-input.invalid {
+#doi-input.invalid, #doi-select.invalid {
   border-color: var(--error-color);
   background-color: #fff8f8;
 }
 
-#doi-input.invalid:focus {
+#doi-input.invalid:focus, #doi-select.invalid:focus {
   box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.15);
 }
 
