@@ -1,6 +1,6 @@
 {
   "name": "flowref",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Fast DOI-based citation generator - Open-source, privacy-friendly citation tool",
   "main": "index.js",
   "scripts": {
