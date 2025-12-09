@@ -56,7 +56,7 @@ FlowRef supports the full CSL (Citation Style Language) repository, providing ac
 
 ## Browser Compatibility
 
-- Firefox (Manifest V3)
+- Firefox
 - Chrome / Chromium
 - Edge
 - Other WebExtensions-compatible browsers
@@ -113,7 +113,7 @@ Chrome: Navigate to `chrome://extensions/` > Enable "Developer mode" > "Load unp
 
 ### Context Menu
 
-1. Select DOI text on any webpage
+1. Select DOI text or link on any webpage
 2. Right-click and choose "Generate Citation from DOI"
 3. Popup opens with citation ready to copy
 
